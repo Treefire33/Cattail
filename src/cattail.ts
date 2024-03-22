@@ -1,4 +1,4 @@
-import * as Graphics from "./graphics";
+import * as Graphics from "./graphics.js";
 export class Game
 {
     public canvas : HTMLCanvasElement
