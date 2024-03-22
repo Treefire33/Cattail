@@ -8,5 +8,7 @@ export class Game {
         this.canvas.style.backgroundColor = backgroundColour.colour;
         this.context = this.canvas.getContext("2d");
         document.append(this.canvas);
+        this.context.rect(0, 0, 50, 50);
+        this.context.fill();
     }
 }
