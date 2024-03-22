@@ -7,8 +7,10 @@ export class Game {
         this.canvas.height = size.y;
         this.canvas.style.backgroundColor = backgroundColour.colour;
         this.context = this.canvas.getContext("2d");
-        document.append(this.canvas);
+        document.body.append(this.canvas);
         this.context.rect(0, 0, 50, 50);
+        this.context.fill();
+        this.context.rect(50, 50, 50, 50);
         this.context.fill();
     }
 }
