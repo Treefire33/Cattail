@@ -1,0 +1,12 @@
+{
+  "name": "cattail",
+  "version": "0.0.1",
+  "description": "Small engine for JS, technically TS.",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Braidon Singh",
+  "license": "MIT",
+  "type": "module"
+}
