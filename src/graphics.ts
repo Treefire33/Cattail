@@ -28,6 +28,7 @@ export class DrawList {
 export class Drawable {
     public points: Array<Vector2>;
     public colour: Colour;
+    public fill: boolean = false;
     constructor(colour: Colour = Colour.red, ...points: Vector2[]) {
         this.points = points;
         this.colour = colour;
@@ -59,7 +60,8 @@ export class Graphics {
         this.context = context;
     }
     public draw(): void { }
-    public drawFromList(fill: boolean): void {
+    public drawFromList(): void {
+        this.context.clearRect(0,0,this.context.canvas.width,this.context.canvas.height);
         DrawList.drawList.forEach((drawable) => {
             let currentContext = this.context;
             currentContext.beginPath();
@@ -67,8 +69,16 @@ export class Graphics {
                 currentContext.lineTo(point.x, point.y);
                 currentContext.stroke();
             });
-            if (fill) { currentContext.fillStyle = drawable.colour.colour; currentContext.fill(); }
+            if (drawable.fill) { currentContext.fillStyle = drawable.colour.colour; currentContext.fill(); }
             else { currentContext.closePath(); }
+            removeItem<Drawable>(DrawList.drawList, drawable);
         });
     }
 }
+function removeItem<T>(arr: Array<T>, value: T): Array<T> { 
+    const index = arr.indexOf(value);
+    if (index > -1) {
+      arr.splice(index, 1);
+    }
+    return arr;
+  }

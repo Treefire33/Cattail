@@ -28,6 +28,7 @@ export class DrawList {
 export class Drawable {
     points;
     colour;
+    fill = false;
     constructor(colour = Colour.red, ...points) {
         this.points = points;
         this.colour = colour;
@@ -59,7 +60,8 @@ export class Graphics {
         this.context = context;
     }
     draw() { }
-    drawFromList(fill) {
+    drawFromList() {
+        this.context.clearRect(0, 0, this.context.canvas.width, this.context.canvas.height);
         DrawList.drawList.forEach((drawable) => {
             let currentContext = this.context;
             currentContext.beginPath();
@@ -67,13 +69,21 @@ export class Graphics {
                 currentContext.lineTo(point.x, point.y);
                 currentContext.stroke();
             });
-            if (fill) {
+            if (drawable.fill) {
                 currentContext.fillStyle = drawable.colour.colour;
                 currentContext.fill();
             }
             else {
                 currentContext.closePath();
             }
+            removeItem(DrawList.drawList, drawable);
         });
     }
+}
+function removeItem(arr, value) {
+    const index = arr.indexOf(value);
+    if (index > -1) {
+        arr.splice(index, 1);
+    }
+    return arr;
 }
