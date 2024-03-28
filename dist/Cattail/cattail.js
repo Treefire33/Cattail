@@ -1,20 +1,28 @@
 import * as Graphics from "./graphics.js";
+import * as Audio from "./audio.js";
 export class Game {
     canvas;
+    audioElement;
     context;
     graphicsContext;
+    audio;
     entites;
     fps = 1000 / 60;
     currentLoop;
     static deltaTime = 0;
     constructor(size, backgroundColour) {
         this.canvas = document.createElement("canvas");
+        this.audioElement = document.createElement("audio");
+        this.audioElement.autoplay = true;
+        this.audioElement.innerText = "Unable to start audio until webpage is clicked or interacted with.";
         this.canvas.width = size.x;
         this.canvas.height = size.y;
         this.canvas.style.backgroundColor = backgroundColour.asCSSColour();
         this.context = this.canvas.getContext("2d");
         document.body.append(this.canvas);
+        document.body.append(this.audioElement);
         this.graphicsContext = new Graphics.Graphics(this.context);
+        this.audio = new Audio.CattailAudio(this.audioElement);
         this.entites = [];
     }
     addEntity(entity) {
@@ -24,6 +32,7 @@ export class Game {
         }
     }
     run() {
+        this.getUserGesture();
         this.entites.forEach((entity) => {
             if (entity.active) {
                 entity.load();
@@ -39,6 +48,18 @@ export class Game {
         };
         //this.currentLoop = setInterval(runFunc, this.fps/1000);
         window.requestAnimationFrame(runFunc);
+    }
+    async getUserGesture() {
+        try {
+            // Wait for the user gesture
+            const clickEvent = await waitForUserGesture();
+            // User has clicked, do something with the event
+            console.log('User clicked:', clickEvent);
+            this.audio.resumeAllSound();
+        }
+        catch (error) {
+            console.error('Error while waiting for user gesture:', error);
+        }
     }
 }
 export class Component {
@@ -114,4 +135,33 @@ export class GameObject {
             component.update();
         });
     }
+}
+function waitForUserGesture() {
+    return new Promise(resolve => {
+        // Define a function to handle the click event
+        function handleClick(event) {
+            // Remove the event listener to prevent multiple resolves
+            document.removeEventListener('change', handleClick);
+            document.removeEventListener('click', handleClick);
+            document.removeEventListener('contextmenu', handleClick);
+            document.removeEventListener('dblclick', handleClick);
+            document.removeEventListener('mouseup', handleClick);
+            document.removeEventListener('pointerup', handleClick);
+            document.removeEventListener('reset', handleClick);
+            document.removeEventListener('submit', handleClick);
+            document.removeEventListener('touchend', handleClick);
+            // Resolve the promise with the event object
+            resolve(event);
+        }
+        // Add a click event listener
+        document.addEventListener('change', handleClick);
+        document.addEventListener('click', handleClick);
+        document.addEventListener('contextmenu', handleClick);
+        document.addEventListener('dblclick', handleClick);
+        document.addEventListener('mouseup', handleClick);
+        document.addEventListener('pointerup', handleClick);
+        document.addEventListener('reset', handleClick);
+        document.addEventListener('submit', handleClick);
+        document.addEventListener('touchend', handleClick);
+    });
 }

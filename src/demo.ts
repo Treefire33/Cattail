@@ -1,5 +1,6 @@
 import {Component, Game, GameObject, SpriteData} from "./Cattail/cattail.js";
 import { Colour, Rectangle, Vector2, Drawable, Sprite, CattailImage } from "./Cattail/graphics.js";
+import * as Audio from "./Cattail/audio.js";
 const controller = 
 {
     38: {pressed: false}, //up
@@ -55,3 +56,20 @@ var plr = new GameObject(sprite, new Vector2(1,1));
 plr.components.push(new Player());
 game.addEntity(plr);
 game.run();
+let summer = game.audio.loadSound("summer.mp3", true);
+let rain = game.audio.loadSound("Rain Is Falling.wav", true);
+let summerState = false;
+let rainState = false;
+document.addEventListener("keydown", (event) => {
+    if(event.key == " ")
+    {
+        rainState = !rainState;
+        rainState ? rain.play() : rain.pause();
+    }
+    if(event.key == "b")
+    {
+        summerState = !summerState;
+        summerState ? summer.play() : summer.pause();
+    }
+});
+
