@@ -1,4 +1,4 @@
-import {Graphics, Vector2, Colour, Drawable, Sprite, Text, Shape} from "./graphics.js";
+import {Graphics, Vector2, Colour, Drawable, Sprite, Text, Shape, Rectangle} from "./graphics.js";
 import {CattailAudio} from "./audio.js";
 export class Game
 {
@@ -101,10 +101,42 @@ export class DrawData
         }
     }
 }
+export class Collider extends Component {
+    public static allColliders: Array<Collider> = [];
+    public position: Vector2;
+    public size: Vector2;
+    public collided: boolean;
+    constructor(pos: Vector2, size: Vector2)
+    {
+        super();
+        this.position = pos;
+        this.size = size;
+        Collider.allColliders.push(this);
+    }
+    public collide(): boolean
+    {
+        let hit = false;
+        Collider.allColliders.forEach((coll) => {
+            if(coll == this) {return;} 
+            if(getDistance(coll.position.x, coll.position.y, this.position.x, this.position.y) < coll.size.x)
+            {
+                hit = true;
+            }
+        });
+        this.collided = hit;
+        return hit;
+    }
+}
+function getDistance(x1,y1,x2,y2): number { 
+    const xDist = x2 - x1;
+    const yDist = y2 - y1;
+    return Math.hypot(xDist, yDist);
+}
 export class GameObject
 {
     public sprite: DrawData; //this is confusing, do I change it? Not right now.
     public components: Array<Component> = [];
+    public collider: Collider;
     public active: boolean = true;
     public scale: Vector2 = new Vector2(1,1);
     // constructor();
@@ -128,7 +160,11 @@ export class GameObject
                     points.x *= this.scale.x;
                     points.y *= this.scale.y;
                 });
+                this.collider = new Collider(this.sprite.draw.position, new Vector2(this.sprite.draw.points[0].x, this.sprite.draw.points[this.sprite.draw.points.length-1].y));
+                return;
             }
+            if(this.sprite.draw instanceof Sprite)
+                this.collider = new Collider(this.sprite.draw.position, new Vector2(this.sprite.draw.size.x, this.sprite.draw.size.y));
         }
     }
 
@@ -144,6 +180,12 @@ export class GameObject
     
     public prepareDraw()
     {
+        let colliderVisual: Drawable;
+        if(this.collider)
+        {
+            colliderVisual = new Rectangle(this.collider.position, this.collider.size, Colour.green);
+            colliderVisual.addToDrawList();
+        }
         this.sprite.draw.addToDrawList();
     }
     public addComponent(component: Component)
@@ -169,6 +211,10 @@ export class GameObject
     {
         //console.log("prepare");
         this.prepareDraw();
+        if(this.collider != null)
+        {
+            this.collider.collide();
+        }
         this.components.forEach((component) => 
         {
             component.update();
