@@ -34,7 +34,7 @@ class AudioClip
         this.clipUrl = url;
         this.element = document.createElement("audio");
         this.element.src = this.clipUrl;
-        this.element.autoplay = true;
+        //this.element.autoplay = true;
         this.element.loop = looped;
         document.body.append(this.element);
         this.context = context;

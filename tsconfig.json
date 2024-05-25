@@ -3,7 +3,7 @@
     {
         "module": "ES2022",
         "target": "ES2022",
-        "outDir": "dist/",
+        "outDir": "dist/Cattail",
         "allowJs": true,
     },
     //"compileOnSave": true,

@@ -1,17 +1,17 @@
-import * as Graphics from "./graphics.js";
-import * as Audio from "./audio.js";
+import {Graphics, Vector2, Colour, Sprite} from "./graphics.js";
+import {CattailAudio} from "./audio.js";
 export class Game
 {
     public canvas : HTMLCanvasElement;
     public audioElement: HTMLAudioElement;
     private context : CanvasRenderingContext2D;
-    public graphicsContext : Graphics.Graphics;
-    public audio : Audio.CattailAudio;
+    public graphicsContext : Graphics;
+    public audio : CattailAudio;
     public entites : Array<GameObject>;
     public fps : number = 1000/60;
     public currentLoop : number;
     public static deltaTime : number = 0;
-    constructor(size:Graphics.Vector2, backgroundColour:Graphics.Colour)
+    constructor(size:Vector2, backgroundColour:Colour)
     {
         this.canvas = <HTMLCanvasElement>document.createElement("canvas");
         this.audioElement = <HTMLAudioElement>document.createElement("audio");
@@ -19,12 +19,15 @@ export class Game
         this.audioElement.innerText = "Unable to start audio until webpage is clicked or interacted with.";
         this.canvas.width = size.x;
         this.canvas.height = size.y;
+        this.canvas.style.width = "100%";
+        this.canvas.style.height = "100%";
+        this.canvas.style.position = "fixed";
         this.canvas.style.backgroundColor = backgroundColour.asCSSColour();
         this.context = this.canvas.getContext("2d")!;
         document.body.append(this.canvas);
         document.body.append(this.audioElement);
-        this.graphicsContext = new Graphics.Graphics(this.context);
-        this.audio =  new Audio.CattailAudio(this.audioElement);
+        this.graphicsContext = new Graphics(this.context);
+        this.audio =  new CattailAudio(this.audioElement);
         this.entites = [];
     }
     public addEntity(entity: GameObject)
@@ -83,8 +86,8 @@ export class Component
 
 export class SpriteData
 {
-    public spr: Graphics.Sprite;
-    public move(pos:Graphics.Vector2)
+    public spr: Sprite;
+    public move(pos:Vector2)
     {
         this.spr.position.x += pos.x;
         this.spr.position.y += pos.y;
@@ -96,11 +99,11 @@ export class GameObject
     public sprite: SpriteData;
     public components: Array<Component> = [];
     public active: boolean = true;
-    public scale: Graphics.Vector2 = new Graphics.Vector2(1,1);
+    public scale: Vector2 = new Vector2(1,1);
     // constructor();
     // constructor(spr: Graphics.Sprite);
     // constructor(spr: Graphics.Sprite, scale?: Graphics.Vector2);
-    constructor(spr?: Graphics.Sprite, scale?: Graphics.Vector2)
+    constructor(spr?: Sprite, scale?: Vector2)
     {
         this.sprite = new SpriteData();
         console.log(this.sprite);
