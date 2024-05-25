@@ -34,7 +34,7 @@ class AudioClip
         this.clipUrl = url;
         this.element = document.createElement("audio");
         this.element.src = this.clipUrl;
-        this.element.autoplay = true;
+        this.element.autoplay = false;
         this.element.loop = looped;
         document.body.append(this.element);
         this.context = context;
@@ -61,8 +61,7 @@ class AudioClip
             this.loadSuspension = false;
         }
     }
-}
-export class Vector2 {
+}export class Vector2 {
     public x: number;
     public y: number;
     public static zero: Vector2 = new Vector2(0, 0);
@@ -111,58 +110,49 @@ export class Colour {
     }
 }
 export class DrawList {
-    public static drawList: Sprite[] = [];
+    public static drawList: Drawable[] = [];
 }
-export class Sprite {
+export class Drawable {
+    //everything is a drawable, but must implment everything separately.
     public position: Vector2;
-    public size: Vector2;
-    public drawable: Drawable;
-    public image: CattailImage;
-    constructor(pos: Vector2, size: Vector2);
-    constructor(pos: Vector2, size: Vector2, drawable?: Drawable);
-    constructor(pos: Vector2, size: Vector2, drawable: Drawable, image?: string);
-    constructor(pos: Vector2, size: Vector2, drawable?: Drawable, image?: string)
-    {
-        this.position = pos;
-        this.size = size;
-        if(drawable)
-        {
-            this.drawable = drawable;
-        }
-        if(image)
-        {
-            this.image = new CattailImage(this.position, this.size, Colour.white, image);
-        }
-    }
-    public move(pos: Vector2)
-    {
-        if(this.drawable)
-        {
-            this.drawable.points.forEach((points) => {
-                points.x += pos.x;
-                points.y += pos.y;
-            });
-        }
-        if(this.image)
-        {
-            this.image.position = this.position;
-        }
-    }
     public addToDrawList()
     {
         DrawList.drawList.push(this);
     }
 }
-export class Drawable {
+export class Sprite extends Drawable {
+    public size: Vector2;
+    public image: CattailImage;
+    constructor(pos: Vector2, size: Vector2);
+    constructor(pos: Vector2, size: Vector2, image?: string)
+    {
+        super();
+        this.position = pos;
+        this.size = size;
+        if(image)
+        {
+            this.image = new CattailImage(this.position, this.size, Colour.white, image);
+        }
+    }
+    public move()
+    {
+        if(this.image)
+        {
+            this.image.position = this.position;
+        }
+    }
+}
+export class Shape extends Drawable {
     public points: Array<Vector2>;
     public colour: Colour;
     public fill: boolean = false;
     constructor(colour: Colour = Colour.red, ...points: Vector2[]) {
+        super();
         this.points = points;
         this.colour = colour;
     }
 }
-export class Rectangle extends Drawable{
+export class Rectangle extends Shape {
     constructor(pos: Vector2, size: Vector2, colour: Colour = Colour.red) {
         let p1 = pos;
         let p2 = new Vector2(pos.x + size.x, pos.y);
@@ -185,6 +175,25 @@ export class CattailImage {
         this.image = temp;
     }
 }
+export class Text extends Drawable {
+    public maxWidth: number;
+    public font: string;
+    public text: string;
+    public fontSize: number;
+    public colour: Colour;
+    constructor(pos: Vector2, text: string, fontSize: number, font: string = "sans-serif", colour: Colour = Colour.black, maxWidth? : number)
+    {
+        super();
+        this.position = pos;
+        this.position.y = pos.y + (fontSize/2);
+        this.text = text;
+        this.fontSize = fontSize;
+        this.font = font;
+        this.colour = colour;
+        if(maxWidth)
+            this.maxWidth = maxWidth;
+    }
+}
 export class Graphics {
     public context: CanvasRenderingContext2D;
     constructor(context: CanvasRenderingContext2D) {
@@ -193,11 +202,11 @@ export class Graphics {
     public draw(): void { }
     public drawFromList(): void {
         this.context.clearRect(0,0,this.context.canvas.width,this.context.canvas.height);
-        DrawList.drawList.forEach((spr) => {
+        DrawList.drawList.forEach((draw) => {
             let currentContext = this.context;
-            if(spr.drawable)
+            if(draw instanceof Shape)
             {
-                let drawable = spr.drawable;
+                let drawable = draw;
                 currentContext.beginPath();
                 drawable.points.forEach((point) => {
                     currentContext.lineTo(point.x, point.y);
@@ -206,12 +215,39 @@ export class Graphics {
                 if (drawable.fill) { currentContext.fillStyle = drawable.colour.asCSSColour(); currentContext.fill(); }
                 else { currentContext.closePath(); }
             }
-            if(spr.image)
+            if(draw instanceof Sprite)
             {
-                let image = spr.image;
+                let image = draw.image;
                 currentContext.drawImage(image.image, image.position.x, image.position.y, image.size.x, image.size.y);
             }
-            removeItem<Sprite>(DrawList.drawList, spr);
+            if(draw instanceof Text)
+            {
+                let textObj = draw;
+                let text = textObj.text;
+                let font = textObj.fontSize.toString() + "px " + textObj.font;
+                currentContext.font = font;
+                currentContext.fillStyle = textObj.colour.asCSSColour();
+                if(text.split('\n').length > 1)
+                {
+                    let curYPos = textObj.position.y;
+                    for(let i = 0; i < text.split('\n').length; i++)
+                    {
+                        if(textObj.maxWidth)
+                            currentContext.fillText(text.split('\n')[i], textObj.position.x, curYPos, textObj.maxWidth);
+                        else
+                            currentContext.fillText(text.split('\n')[i], textObj.position.x, curYPos);
+                        curYPos += textObj.fontSize;
+                    }
+                }
+                else
+                {
+                    if(textObj.maxWidth)
+                        currentContext.fillText(text, textObj.position.x, textObj.position.y, textObj.maxWidth);
+                    else
+                        currentContext.fillText(text, textObj.position.x, textObj.position.y);
+                }
+            }
+            removeItem<Drawable>(DrawList.drawList, draw);
         });
     }
 }
@@ -221,8 +257,7 @@ function removeItem<T>(arr: Array<T>, value: T): Array<T> {
       arr.splice(index, 1);
     }
     return arr;
-}
-export class Game
+}export class Game
 {
     public canvas : HTMLCanvasElement;
     public audioElement: HTMLAudioElement;
@@ -233,18 +268,15 @@ export class Game
     public fps : number = 1000/60;
     public currentLoop : number;
     public static deltaTime : number = 0;
-    constructor(size:Vector2, backgroundColour:Colour)
+    constructor(size?:Vector2, backgroundColour?:Colour)
     {
         this.canvas = <HTMLCanvasElement>document.createElement("canvas");
+        this.canvas.width = size.x;
+        this.canvas.height = size.y;
+        this.canvas.style.backgroundColor = backgroundColour.asCSSColour();
         this.audioElement = <HTMLAudioElement>document.createElement("audio");
         this.audioElement.autoplay = true;
         this.audioElement.innerText = "Unable to start audio until webpage is clicked or interacted with.";
-        this.canvas.width = size.x;
-        this.canvas.height = size.y;
-        this.canvas.style.width = "100%";
-        this.canvas.style.height = "100%";
-        this.canvas.style.position = "fixed";
-        this.canvas.style.backgroundColor = backgroundColour.asCSSColour();
         this.context = this.canvas.getContext("2d")!;
         document.body.append(this.canvas);
         document.body.append(this.audioElement);
@@ -306,28 +338,38 @@ export class Component
     }
 }
 
-export class SpriteData
+export class DrawData
 {
-    public spr: Sprite;
+    public draw: Drawable;
     public move(pos:Vector2)
     {
-        this.spr.position.x += pos.x;
-        this.spr.position.y += pos.y;
-        this.spr.move(pos);
+        this.draw.position.x += pos.x;
+        this.draw.position.y += pos.y;
+        if(this.draw instanceof Sprite)
+        {
+            this.draw.move();
+        }
+        if(this.draw instanceof Shape)
+        {
+            this.draw.points.forEach((points) => {
+                points.x += pos.x;
+                points.y += pos.y;
+            });
+        }
     }
 }
 export class GameObject
 {
-    public sprite: SpriteData;
+    public sprite: DrawData; //this is confusing, do I change it? Not right now.
     public components: Array<Component> = [];
     public active: boolean = true;
     public scale: Vector2 = new Vector2(1,1);
     // constructor();
     // constructor(spr: Graphics.Sprite);
     // constructor(spr: Graphics.Sprite, scale?: Graphics.Vector2);
-    constructor(spr?: Sprite, scale?: Vector2)
+    constructor(spr?: Drawable, scale?: Vector2)
     {
-        this.sprite = new SpriteData();
+        this.sprite = new DrawData();
         console.log(this.sprite);
         if(scale)
         {
@@ -335,10 +377,10 @@ export class GameObject
         }
         if(spr)
         {
-            this.sprite.spr = spr;
-            if(scale && this.sprite.spr.drawable)
+            this.sprite.draw = spr;
+            if(scale && this.sprite.draw instanceof Shape)
             {
-                this.sprite.spr.drawable.points.forEach((points) => 
+                this.sprite.draw.points.forEach((points) => 
                 {
                     points.x *= this.scale.x;
                     points.y *= this.scale.y;
@@ -359,7 +401,7 @@ export class GameObject
     
     public prepareDraw()
     {
-        this.sprite.spr.addToDrawList();
+        this.sprite.draw.addToDrawList();
     }
     public addComponent(component: Component)
     {

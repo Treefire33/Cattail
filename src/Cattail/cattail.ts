@@ -1,4 +1,4 @@
-import {Graphics, Vector2, Colour, Sprite} from "./graphics.js";
+import {Graphics, Vector2, Colour, Drawable, Sprite, Text, Shape} from "./graphics.js";
 import {CattailAudio} from "./audio.js";
 export class Game
 {
@@ -11,18 +11,15 @@ export class Game
     public fps : number = 1000/60;
     public currentLoop : number;
     public static deltaTime : number = 0;
-    constructor(size:Vector2, backgroundColour:Colour)
+    constructor(size?:Vector2, backgroundColour?:Colour)
     {
         this.canvas = <HTMLCanvasElement>document.createElement("canvas");
+        this.canvas.width = size.x;
+        this.canvas.height = size.y;
+        this.canvas.style.backgroundColor = backgroundColour.asCSSColour();
         this.audioElement = <HTMLAudioElement>document.createElement("audio");
         this.audioElement.autoplay = true;
         this.audioElement.innerText = "Unable to start audio until webpage is clicked or interacted with.";
-        this.canvas.width = size.x;
-        this.canvas.height = size.y;
-        this.canvas.style.width = "100%";
-        this.canvas.style.height = "100%";
-        this.canvas.style.position = "fixed";
-        this.canvas.style.backgroundColor = backgroundColour.asCSSColour();
         this.context = this.canvas.getContext("2d")!;
         document.body.append(this.canvas);
         document.body.append(this.audioElement);
@@ -84,28 +81,38 @@ export class Component
     }
 }
 
-export class SpriteData
+export class DrawData
 {
-    public spr: Sprite;
+    public draw: Drawable;
     public move(pos:Vector2)
     {
-        this.spr.position.x += pos.x;
-        this.spr.position.y += pos.y;
-        this.spr.move(pos);
+        this.draw.position.x += pos.x;
+        this.draw.position.y += pos.y;
+        if(this.draw instanceof Sprite)
+        {
+            this.draw.move();
+        }
+        if(this.draw instanceof Shape)
+        {
+            this.draw.points.forEach((points) => {
+                points.x += pos.x;
+                points.y += pos.y;
+            });
+        }
     }
 }
 export class GameObject
 {
-    public sprite: SpriteData;
+    public sprite: DrawData; //this is confusing, do I change it? Not right now.
     public components: Array<Component> = [];
     public active: boolean = true;
     public scale: Vector2 = new Vector2(1,1);
     // constructor();
     // constructor(spr: Graphics.Sprite);
     // constructor(spr: Graphics.Sprite, scale?: Graphics.Vector2);
-    constructor(spr?: Sprite, scale?: Vector2)
+    constructor(spr?: Drawable, scale?: Vector2)
     {
-        this.sprite = new SpriteData();
+        this.sprite = new DrawData();
         console.log(this.sprite);
         if(scale)
         {
@@ -113,10 +120,10 @@ export class GameObject
         }
         if(spr)
         {
-            this.sprite.spr = spr;
-            if(scale && this.sprite.spr.drawable)
+            this.sprite.draw = spr;
+            if(scale && this.sprite.draw instanceof Shape)
             {
-                this.sprite.spr.drawable.points.forEach((points) => 
+                this.sprite.draw.points.forEach((points) => 
                 {
                     points.x *= this.scale.x;
                     points.y *= this.scale.y;
@@ -137,7 +144,7 @@ export class GameObject
     
     public prepareDraw()
     {
-        this.sprite.spr.addToDrawList();
+        this.sprite.draw.addToDrawList();
     }
     public addComponent(component: Component)
     {
