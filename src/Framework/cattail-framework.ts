@@ -61,7 +61,8 @@ class AudioClip
             this.loadSuspension = false;
         }
     }
-}export class Vector2 {
+}
+export class Vector2 {
     public x: number;
     public y: number;
     public static zero: Vector2 = new Vector2(0, 0);
@@ -114,7 +115,7 @@ export class DrawList {
 }
 export class Drawable {
     //everything is a drawable, but must implment everything separately.
-    public position: Vector2;
+    public position: Vector2 = new Vector2(0,0);
     public addToDrawList()
     {
         DrawList.drawList.push(this);
@@ -123,7 +124,7 @@ export class Drawable {
 export class Sprite extends Drawable {
     public size: Vector2;
     public image: CattailImage;
-    constructor(pos: Vector2, size: Vector2);
+    //constructor(pos: Vector2, size: Vector2);
     constructor(pos: Vector2, size: Vector2, image?: string)
     {
         super();
@@ -181,7 +182,7 @@ export class Text extends Drawable {
     public text: string;
     public fontSize: number;
     public colour: Colour;
-    constructor(pos: Vector2, text: string, fontSize: number, font: string = "sans-serif", colour: Colour = Colour.black, maxWidth? : number)
+    constructor(pos: Vector2, text: string, fontSize: number, font: string = "sans-serif", colour: Colour = Colour.black, maxWidth : number = 10000)
     {
         super();
         this.position = pos;
@@ -199,9 +200,54 @@ export class Graphics {
     constructor(context: CanvasRenderingContext2D) {
         this.context = context;
     }
-    public draw(): void { }
+    public draw(draw: Drawable): void 
+    { 
+        let currentContext = this.context;
+        if(draw instanceof Shape)
+        {
+            let drawable = draw;
+            currentContext.beginPath();
+            drawable.points.forEach((point) => {
+                currentContext.lineTo(point.x, point.y);
+            });
+            currentContext.stroke();
+            if (drawable.fill) { currentContext.fillStyle = drawable.colour.asCSSColour(); currentContext.fill(); }
+            else { currentContext.closePath(); }
+        }
+        if(draw instanceof Sprite)
+        {
+            let image = draw.image;
+            currentContext.drawImage(image.image, image.position.x, image.position.y, image.size.x, image.size.y);
+        }
+        if(draw instanceof Text)
+        {
+            let textObj = draw;
+            let text = textObj.text;
+            let font = textObj.fontSize.toString() + "px " + textObj.font;
+            currentContext.font = font;
+            currentContext.fillStyle = textObj.colour.asCSSColour();
+            if(text.split('\n').length > 1)
+            {
+                let curYPos = textObj.position.y;
+                for(let i = 0; i < text.split('\n').length; i++)
+                {
+                    if(textObj.maxWidth)
+                        currentContext.fillText(text.split('\n')[i], textObj.position.x, curYPos, textObj.maxWidth);
+                    else
+                        currentContext.fillText(text.split('\n')[i], textObj.position.x, curYPos);
+                    curYPos += textObj.fontSize;
+                }
+            }
+            else
+            {
+                if(textObj.maxWidth)
+                    currentContext.fillText(text, textObj.position.x, textObj.position.y, textObj.maxWidth);
+                else
+                    currentContext.fillText(text, textObj.position.x, textObj.position.y);
+            }
+        }
+    }
     public drawFromList(): void {
-        this.context.clearRect(0,0,this.context.canvas.width,this.context.canvas.height);
         DrawList.drawList.forEach((draw) => {
             let currentContext = this.context;
             if(draw instanceof Shape)
@@ -257,7 +303,8 @@ function removeItem<T>(arr: Array<T>, value: T): Array<T> {
       arr.splice(index, 1);
     }
     return arr;
-}export class Game
+}
+export class Game
 {
     public canvas : HTMLCanvasElement;
     public audioElement: HTMLAudioElement;
@@ -267,12 +314,17 @@ function removeItem<T>(arr: Array<T>, value: T): Array<T> {
     public entites : Array<GameObject>;
     public fps : number = 1000/60;
     public currentLoop : number;
+    public backgroundImage: Sprite;
+
     public static deltaTime : number = 0;
+    public static NullDrawable : Drawable = new Drawable();
+    
     constructor(size?:Vector2, backgroundColour?:Colour)
     {
         this.canvas = <HTMLCanvasElement>document.createElement("canvas");
         this.canvas.width = size.x;
         this.canvas.height = size.y;
+        this.canvas.style.display = "block";
         this.canvas.style.backgroundColor = backgroundColour.asCSSColour();
         this.audioElement = <HTMLAudioElement>document.createElement("audio");
         this.audioElement.autoplay = true;
@@ -283,6 +335,10 @@ function removeItem<T>(arr: Array<T>, value: T): Array<T> {
         this.graphicsContext = new Graphics(this.context);
         this.audio =  new CattailAudio(this.audioElement);
         this.entites = [];
+    }
+    public setBackgroundImage(imageUrl: string)
+    {
+        this.backgroundImage = new Sprite(new Vector2(0,0), new Vector2(this.canvas.width, this.canvas.height), imageUrl);
     }
     public addEntity(entity: GameObject)
     {
@@ -307,6 +363,8 @@ function removeItem<T>(arr: Array<T>, value: T): Array<T> {
             Game.deltaTime = (timestamp - lastTime) / this.fps;
             lastTime = timestamp;
             this.entites.forEach((entity) => {entity.update();})
+            this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
+            this.graphicsContext.draw(this.backgroundImage);
             this.graphicsContext.drawFromList();
             window.requestAnimationFrame(runFunc);
         }
@@ -324,6 +382,21 @@ function removeItem<T>(arr: Array<T>, value: T): Array<T> {
           console.error('Error while waiting for user gesture:', error);
         }
     }
+    private resizeCanvas() 
+    {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+    public enableResize()
+    {
+        window.addEventListener("resize", this.resizeCanvas);
+        this.resizeCanvas();
+    }
+}
+export class Scene
+{
+    public entities : Array<GameObject>;
+    //this is just so I know it exists.
 }
 export class Component
 {
@@ -387,6 +460,10 @@ export class GameObject
                 });
             }
         }
+        else
+        {
+            this.sprite = null;
+        }
     }
 
     // public set scale(v : Graphics.Vector2) 
@@ -401,7 +478,10 @@ export class GameObject
     
     public prepareDraw()
     {
-        this.sprite.draw.addToDrawList();
+        if(this.sprite != null && this.active)
+        {
+            this.sprite.draw.addToDrawList();
+        }
     }
     public addComponent(component: Component)
     {
@@ -430,6 +510,31 @@ export class GameObject
         {
             component.update();
         });
+    }
+    // public getComponent<Component>(): Component | undefined
+    // {
+    //     this.components.forEach((component) => 
+    //     {
+    //         if(component instanceof Component)
+    //         {
+    //             return component;
+    //         }
+    //     });
+    //     return undefined;
+    // }
+    public getComponent(componentClass: any): any
+    {
+        let foundComponent = undefined;
+        this.components.forEach((component) => 
+        {
+            console.log(component);
+            console.log(component instanceof componentClass);
+            if(component instanceof componentClass)
+            {
+                foundComponent = component;
+            }
+        });
+        return foundComponent;
     }
 }
 
@@ -462,4 +567,63 @@ function waitForUserGesture() {
         document.addEventListener('submit', handleClick);
         document.addEventListener('touchend', handleClick);
     });
+}
+
+export class TextComponent extends Component
+{
+    private textObj : Text = null;
+
+    private text : string;
+    private size : number;
+    private font : string = "sans-serif";
+
+    constructor(text: string, size: number, font?: string)
+    {
+        super();
+        this.text = text;
+        this.size = size;
+        this.font = font;
+    }
+
+    public load(...args: any[])
+    {
+        this.textObj = new Text(this.gameObject.sprite.draw.position, this.text, this.size, this.font);
+    }
+
+    public setFont(font: string): void
+    {
+        this.textObj.font = font;
+    }
+
+    public setSize(size: number): void
+    {
+        this.textObj.fontSize = size;
+    }
+
+    public setColour(colour: Colour): void
+    {
+        this.textObj.colour = colour;
+    }
+
+    public setText(text: string): void
+    {
+        this.textObj.text = text;
+    }
+
+    public anchor(): void
+    {
+        //this just sets it to itself.
+        let positionAtAnchor: Vector2 = new Vector2(this.textObj.position.x, this.textObj.position.y);
+        this.textObj.position = positionAtAnchor;
+    }
+
+    public anchorTo(pos: Vector2): void
+    {
+        this.textObj.position = pos;
+    }
+
+    public update(...args: any[])
+    {
+        this.textObj.addToDrawList();
+    }
 }

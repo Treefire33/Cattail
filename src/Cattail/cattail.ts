@@ -1,5 +1,5 @@
-import {Graphics, Vector2, Colour, Drawable, Sprite, Text, Shape} from "./graphics.js";
-import {CattailAudio} from "./audio.js";
+import {Graphics, Vector2, Colour, Drawable, Sprite, Text, Shape, CattailImage} from "./graphics";
+import {CattailAudio} from "./audio";
 export class Game
 {
     public canvas : HTMLCanvasElement;
@@ -10,12 +10,17 @@ export class Game
     public entites : Array<GameObject>;
     public fps : number = 1000/60;
     public currentLoop : number;
+    public backgroundImage: Sprite;
+
     public static deltaTime : number = 0;
+    public static NullDrawable : Drawable = new Drawable();
+    
     constructor(size?:Vector2, backgroundColour?:Colour)
     {
         this.canvas = <HTMLCanvasElement>document.createElement("canvas");
         this.canvas.width = size.x;
         this.canvas.height = size.y;
+        this.canvas.style.display = "block";
         this.canvas.style.backgroundColor = backgroundColour.asCSSColour();
         this.audioElement = <HTMLAudioElement>document.createElement("audio");
         this.audioElement.autoplay = true;
@@ -26,6 +31,10 @@ export class Game
         this.graphicsContext = new Graphics(this.context);
         this.audio =  new CattailAudio(this.audioElement);
         this.entites = [];
+    }
+    public setBackgroundImage(imageUrl: string)
+    {
+        this.backgroundImage = new Sprite(new Vector2(0,0), new Vector2(this.canvas.width, this.canvas.height), imageUrl);
     }
     public addEntity(entity: GameObject)
     {
@@ -50,6 +59,8 @@ export class Game
             Game.deltaTime = (timestamp - lastTime) / this.fps;
             lastTime = timestamp;
             this.entites.forEach((entity) => {entity.update();})
+            this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
+            this.graphicsContext.draw(this.backgroundImage);
             this.graphicsContext.drawFromList();
             window.requestAnimationFrame(runFunc);
         }
@@ -67,6 +78,21 @@ export class Game
           console.error('Error while waiting for user gesture:', error);
         }
     }
+    private resizeCanvas() 
+    {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+    public enableResize()
+    {
+        window.addEventListener("resize", this.resizeCanvas);
+        this.resizeCanvas();
+    }
+}
+export class Scene
+{
+    public entities : Array<GameObject>;
+    //this is just so I know it exists.
 }
 export class Component
 {
@@ -130,6 +156,10 @@ export class GameObject
                 });
             }
         }
+        else
+        {
+            this.sprite = null;
+        }
     }
 
     // public set scale(v : Graphics.Vector2) 
@@ -144,7 +174,10 @@ export class GameObject
     
     public prepareDraw()
     {
-        this.sprite.draw.addToDrawList();
+        if(this.sprite != null && this.active)
+        {
+            this.sprite.draw.addToDrawList();
+        }
     }
     public addComponent(component: Component)
     {
@@ -173,6 +206,31 @@ export class GameObject
         {
             component.update();
         });
+    }
+    // public getComponent<Component>(): Component | undefined
+    // {
+    //     this.components.forEach((component) => 
+    //     {
+    //         if(component instanceof Component)
+    //         {
+    //             return component;
+    //         }
+    //     });
+    //     return undefined;
+    // }
+    public getComponent(componentClass: any): any
+    {
+        let foundComponent = undefined;
+        this.components.forEach((component) => 
+        {
+            console.log(component);
+            console.log(component instanceof componentClass);
+            if(component instanceof componentClass)
+            {
+                foundComponent = component;
+            }
+        });
+        return foundComponent;
     }
 }
 

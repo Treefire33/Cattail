@@ -51,7 +51,7 @@ export class DrawList {
 }
 export class Drawable {
     //everything is a drawable, but must implment everything separately.
-    public position: Vector2;
+    public position: Vector2 = new Vector2(0,0);
     public addToDrawList()
     {
         DrawList.drawList.push(this);
@@ -60,7 +60,7 @@ export class Drawable {
 export class Sprite extends Drawable {
     public size: Vector2;
     public image: CattailImage;
-    constructor(pos: Vector2, size: Vector2);
+    //constructor(pos: Vector2, size: Vector2);
     constructor(pos: Vector2, size: Vector2, image?: string)
     {
         super();
@@ -118,7 +118,7 @@ export class Text extends Drawable {
     public text: string;
     public fontSize: number;
     public colour: Colour;
-    constructor(pos: Vector2, text: string, fontSize: number, font: string = "sans-serif", colour: Colour = Colour.black, maxWidth? : number)
+    constructor(pos: Vector2, text: string, fontSize: number, font: string = "sans-serif", colour: Colour = Colour.black, maxWidth : number = 10000)
     {
         super();
         this.position = pos;
@@ -136,9 +136,54 @@ export class Graphics {
     constructor(context: CanvasRenderingContext2D) {
         this.context = context;
     }
-    public draw(): void { }
+    public draw(draw: Drawable): void 
+    { 
+        let currentContext = this.context;
+        if(draw instanceof Shape)
+        {
+            let drawable = draw;
+            currentContext.beginPath();
+            drawable.points.forEach((point) => {
+                currentContext.lineTo(point.x, point.y);
+            });
+            currentContext.stroke();
+            if (drawable.fill) { currentContext.fillStyle = drawable.colour.asCSSColour(); currentContext.fill(); }
+            else { currentContext.closePath(); }
+        }
+        if(draw instanceof Sprite)
+        {
+            let image = draw.image;
+            currentContext.drawImage(image.image, image.position.x, image.position.y, image.size.x, image.size.y);
+        }
+        if(draw instanceof Text)
+        {
+            let textObj = draw;
+            let text = textObj.text;
+            let font = textObj.fontSize.toString() + "px " + textObj.font;
+            currentContext.font = font;
+            currentContext.fillStyle = textObj.colour.asCSSColour();
+            if(text.split('\n').length > 1)
+            {
+                let curYPos = textObj.position.y;
+                for(let i = 0; i < text.split('\n').length; i++)
+                {
+                    if(textObj.maxWidth)
+                        currentContext.fillText(text.split('\n')[i], textObj.position.x, curYPos, textObj.maxWidth);
+                    else
+                        currentContext.fillText(text.split('\n')[i], textObj.position.x, curYPos);
+                    curYPos += textObj.fontSize;
+                }
+            }
+            else
+            {
+                if(textObj.maxWidth)
+                    currentContext.fillText(text, textObj.position.x, textObj.position.y, textObj.maxWidth);
+                else
+                    currentContext.fillText(text, textObj.position.x, textObj.position.y);
+            }
+        }
+    }
     public drawFromList(): void {
-        this.context.clearRect(0,0,this.context.canvas.width,this.context.canvas.height);
         DrawList.drawList.forEach((draw) => {
             let currentContext = this.context;
             if(draw instanceof Shape)
