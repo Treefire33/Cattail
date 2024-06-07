@@ -335,6 +335,15 @@ export class Game
         this.graphicsContext = new Graphics(this.context);
         this.audio =  new CattailAudio(this.audioElement);
         this.entites = [];
+        window.addEventListener("resize", ()=>{
+            this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; 
+            if(this.backgroundImage != null || this.backgroundImage != undefined)
+            {
+                this.backgroundImage.image.size = new Vector2(this.canvas.width, this.canvas.height);
+            }
+        });
+        this.canvas.width = window.innerWidth; 
+        this.canvas.height = window.innerHeight;
     }
     public setBackgroundImage(imageUrl: string)
     {
@@ -381,16 +390,6 @@ export class Game
         } catch (error) {
           console.error('Error while waiting for user gesture:', error);
         }
-    }
-    private resizeCanvas() 
-    {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
-    }
-    public enableResize()
-    {
-        window.addEventListener("resize", this.resizeCanvas);
-        this.resizeCanvas();
     }
 }
 export class Scene
