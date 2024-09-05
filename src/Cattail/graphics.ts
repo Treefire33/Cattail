@@ -131,6 +131,57 @@ export class Text extends Drawable {
             this.maxWidth = maxWidth;
     }
 }
+export class SpritesheetDrawable extends Drawable
+{
+    public image: HTMLImageElement;
+    public cellSize: Vector2;
+    public cellPosition: Vector2;
+    public spriteSize: Vector2;
+    constructor(cellPosition: Vector2, cellSize: Vector2, image: CattailImage, imageDimensions?: Vector2)
+    {
+        super();
+        this.cellSize = cellSize;
+        this.image = image.image;
+        this.cellPosition = cellPosition;
+        if(imageDimensions)
+        {
+            this.spriteSize = new Vector2(imageDimensions.x/cellSize.x, imageDimensions.y/cellSize.y);
+        }
+        else
+        {
+            this.spriteSize = new Vector2(cellSize.x, cellSize.y);
+        }
+    }
+}
+export class Spritesheet extends Drawable
+{
+    public image: CattailImage;
+    public imageDimensions: Vector2;
+    public cellDimensions: Vector2;
+    public cellPadding: number;
+
+    constructor(srcImage: string, size: Vector2, cellDimensions: Vector2, cellPadding: number)
+    {
+        super();
+        this.image = new CattailImage(new Vector2(0, 0), size, Colour.white, srcImage);
+        this.imageDimensions = size;
+        this.cellDimensions = cellDimensions;
+        this.cellPadding = cellPadding;
+    }
+
+    public getSprite(row: number, col: number): SpritesheetDrawable
+    {
+        return new SpritesheetDrawable(this.getFrameFromRowCol(row, col), this.cellDimensions, this.image);
+    }    
+
+    public getFrameFromRowCol(row: number, col: number): Vector2
+    {
+        return new Vector2(
+            col * (this.cellPadding + this.cellDimensions.x),
+            row * (this.cellPadding + this.cellDimensions.y),
+        );
+    }
+}
 export class Graphics {
     public context: CanvasRenderingContext2D;
     constructor(context: CanvasRenderingContext2D) {
@@ -201,6 +252,16 @@ export class Graphics {
             {
                 let image = draw.image;
                 currentContext.drawImage(image.image, image.position.x, image.position.y, image.size.x, image.size.y);
+            }
+            if(draw instanceof SpritesheetDrawable)
+            {
+                currentContext.drawImage(
+                    draw.image, //image
+                    draw.cellPosition.x, draw.cellPosition.y, //source position
+                    draw.cellSize.x, draw.cellSize.y, //source size
+                    draw.position.x, draw.position.y, //dest canvas position
+                    draw.spriteSize.x, draw.spriteSize.y //dest canvas size
+                );
             }
             if(draw instanceof Text)
             {
