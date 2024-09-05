@@ -199,15 +199,26 @@ export class Spritesheet extends Drawable {
     imageDimensions;
     cellDimensions;
     cellPadding;
+    spriteGroups;
     constructor(srcImage, size, cellDimensions, cellPadding) {
         super();
         this.image = new CattailImage(new Vector2(0, 0), size, Colour.white, srcImage);
         this.imageDimensions = size;
         this.cellDimensions = cellDimensions;
         this.cellPadding = cellPadding;
+        this.spriteGroups = {};
+    }
+    createSpriteGroup(groupName, topLeftMostSprite) {
+        this.spriteGroups[groupName] = topLeftMostSprite;
     }
     getSprite(row, col) {
         return new SpritesheetDrawable(this.getFrameFromRowCol(row, col), this.cellDimensions, this.image);
+    }
+    getSpriteFromGroup(groupName, row, col) {
+        if (!this.spriteGroups[groupName]) {
+            console.error(`No group of name ${groupName}.`);
+        }
+        return new SpritesheetDrawable(this.getFrameFromRowCol(row + this.spriteGroups[groupName].x, col + this.spriteGroups[groupName].y), this.cellDimensions, this.image);
     }
     getFrameFromRowCol(row, col) {
         return new Vector2(col * (this.cellPadding + this.cellDimensions.x), row * (this.cellPadding + this.cellDimensions.y));

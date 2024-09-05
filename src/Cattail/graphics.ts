@@ -159,6 +159,7 @@ export class Spritesheet extends Drawable
     public imageDimensions: Vector2;
     public cellDimensions: Vector2;
     public cellPadding: number;
+    public spriteGroups: { [id: string|number]: Vector2 };
 
     constructor(srcImage: string, size: Vector2, cellDimensions: Vector2, cellPadding: number)
     {
@@ -167,12 +168,24 @@ export class Spritesheet extends Drawable
         this.imageDimensions = size;
         this.cellDimensions = cellDimensions;
         this.cellPadding = cellPadding;
+        this.spriteGroups = {};
+    }
+
+    public createSpriteGroup(groupName: string|number, topLeftMostSprite: Vector2)
+    {
+        this.spriteGroups[groupName] = topLeftMostSprite;
     }
 
     public getSprite(row: number, col: number): SpritesheetDrawable
     {
         return new SpritesheetDrawable(this.getFrameFromRowCol(row, col), this.cellDimensions, this.image);
-    }    
+    } 
+    
+    public getSpriteFromGroup(groupName: string|number, row: number, col: number): SpritesheetDrawable
+    {
+        if(!this.spriteGroups[groupName]) { console.error(`No group of name ${groupName}.`); }
+        return new SpritesheetDrawable(this.getFrameFromRowCol(row + this.spriteGroups[groupName].x, col + this.spriteGroups[groupName].y), this.cellDimensions, this.image);
+    } 
 
     public getFrameFromRowCol(row: number, col: number): Vector2
     {
