@@ -20,6 +20,7 @@ export class TextComponent extends Component
     public load(...args: any[])
     {
         this.textObj = new Text(this.gameObject.sprite.draw.position, this.text, this.size, this.font);
+        this.textObj.zIndex = 1000;
     }
 
     public setFont(font: string): void
@@ -47,6 +48,11 @@ export class TextComponent extends Component
         //this just sets it to itself.
         let positionAtAnchor: Vector2 = new Vector2(this.textObj.position.x, this.textObj.position.y);
         this.textObj.position = positionAtAnchor;
+    }
+
+    public setDepth(z: number)
+    {
+        this.textObj.setDepth(z);
     }
 
     public anchorTo(pos: Vector2): void

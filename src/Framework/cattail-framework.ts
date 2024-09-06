@@ -116,9 +116,15 @@ export class DrawList {
 export class Drawable {
     //everything is a drawable, but must implment everything separately.
     public position: Vector2 = new Vector2(0,0);
+    public zIndex = 0;
     public addToDrawList()
     {
         DrawList.drawList.push(this);
+    }
+
+    public setDepth(z: number)
+    {
+        this.zIndex = z;
     }
 }
 export class Sprite extends Drawable {
@@ -312,6 +318,9 @@ export class Graphics {
         }
     }
     public drawFromList(): void {
+        DrawList.drawList.sort((a, b) => {
+            return a.zIndex - b.zIndex;
+        });
         DrawList.drawList.forEach((draw) => {
             let currentContext = this.context;
             if(draw instanceof Shape)
@@ -685,6 +694,7 @@ export class TextComponent extends Component
     public load(...args: any[])
     {
         this.textObj = new Text(this.gameObject.sprite.draw.position, this.text, this.size, this.font);
+        this.textObj.zIndex = 1000;
     }
 
     public setFont(font: string): void
@@ -712,6 +722,11 @@ export class TextComponent extends Component
         //this just sets it to itself.
         let positionAtAnchor: Vector2 = new Vector2(this.textObj.position.x, this.textObj.position.y);
         this.textObj.position = positionAtAnchor;
+    }
+
+    public setDepth(z: number)
+    {
+        this.textObj.setDepth(z);
     }
 
     public anchorTo(pos: Vector2): void

@@ -13,6 +13,7 @@ export class TextComponent extends Component {
     }
     load(...args) {
         this.textObj = new Text(this.gameObject.sprite.draw.position, this.text, this.size, this.font);
+        this.textObj.zIndex = 1000;
     }
     setFont(font) {
         this.textObj.font = font;
@@ -30,6 +31,9 @@ export class TextComponent extends Component {
         //this just sets it to itself.
         let positionAtAnchor = new Vector2(this.textObj.position.x, this.textObj.position.y);
         this.textObj.position = positionAtAnchor;
+    }
+    setDepth(z) {
+        this.textObj.setDepth(z);
     }
     anchorTo(pos) {
         this.textObj.position = pos;

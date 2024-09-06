@@ -50,8 +50,12 @@ export class DrawList {
 export class Drawable {
     //everything is a drawable, but must implment everything separately.
     position = new Vector2(0, 0);
+    zIndex = 0;
     addToDrawList() {
         DrawList.drawList.push(this);
+    }
+    setDepth(z) {
+        this.zIndex = z;
     }
 }
 export class Sprite extends Drawable {
@@ -222,6 +226,9 @@ export class Graphics {
         }
     }
     drawFromList() {
+        DrawList.drawList.sort((a, b) => {
+            return a.zIndex - b.zIndex;
+        });
         DrawList.drawList.forEach((draw) => {
             let currentContext = this.context;
             if (draw instanceof Shape) {
