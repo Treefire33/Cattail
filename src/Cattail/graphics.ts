@@ -46,13 +46,22 @@ export class Colour {
         return `rgba(${this.colour.x},${this.colour.y},${this.colour.z},${this.alpha})`;
     }
 }
+// const CompositeOperation = Object.freeze({
+//     "default": "source-over",
+//     "src-include": "source-in",
+//     "src-exclude": "source-out",
+//     "src-existing": "source-atop",
+//     "default-dest": "destination-over",
+//     "dest-include": "destination-in"
+// });
 export class DrawList {
     public static drawList: Drawable[] = [];
 }
 export class Drawable {
     //everything is a drawable, but must implment everything separately.
     public position: Vector2 = new Vector2(0,0);
-    public zIndex = 0;
+    public zIndex: number = 0;
+    public compositeOperation: GlobalCompositeOperation = "source-over";
     public addToDrawList()
     {
         DrawList.drawList.push(this);
@@ -209,6 +218,7 @@ export class Graphics {
     public draw(draw: Drawable): void 
     { 
         let currentContext = this.context;
+        currentContext.globalCompositeOperation = draw.compositeOperation;
         if(draw instanceof Shape)
         {
             let drawable = draw;
@@ -259,6 +269,7 @@ export class Graphics {
         });
         DrawList.drawList.forEach((draw) => {
             let currentContext = this.context;
+            currentContext.globalCompositeOperation = draw.compositeOperation;
             if(draw instanceof Shape)
             {
                 let drawable = draw;
