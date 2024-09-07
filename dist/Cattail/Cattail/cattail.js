@@ -22,6 +22,7 @@ export class Game {
         this.audioElement.autoplay = true;
         this.audioElement.innerText = "Unable to start audio until webpage is clicked or interacted with.";
         this.context = this.canvas.getContext("2d");
+        this.context.imageSmoothingEnabled = false;
         document.body.append(this.canvas);
         document.body.append(this.audioElement);
         this.graphicsContext = new Graphics(this.context);

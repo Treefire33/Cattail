@@ -97,6 +97,14 @@ export class Colour {
         return `rgba(${this.colour.x},${this.colour.y},${this.colour.z},${this.alpha})`;
     }
 }
+// const CompositeOperation = Object.freeze({
+//     "default": "source-over",
+//     "src-include": "source-in",
+//     "src-exclude": "source-out",
+//     "src-existing": "source-atop",
+//     "default-dest": "destination-over",
+//     "dest-include": "destination-in"
+// });
 export class DrawList {
     static drawList = [];
 }
@@ -104,6 +112,7 @@ export class Drawable {
     //everything is a drawable, but must implment everything separately.
     position = new Vector2(0, 0);
     zIndex = 0;
+    compositeOperation = "source-over";
     addToDrawList() {
         DrawList.drawList.push(this);
     }
@@ -235,6 +244,7 @@ export class Graphics {
     }
     draw(draw) {
         let currentContext = this.context;
+        currentContext.globalCompositeOperation = draw.compositeOperation;
         if (draw instanceof Shape) {
             let drawable = draw;
             currentContext.beginPath();
@@ -284,6 +294,7 @@ export class Graphics {
         });
         DrawList.drawList.forEach((draw) => {
             let currentContext = this.context;
+            currentContext.globalCompositeOperation = draw.compositeOperation;
             if (draw instanceof Shape) {
                 let drawable = draw;
                 currentContext.beginPath();
@@ -367,6 +378,7 @@ export class Game {
         this.audioElement.autoplay = true;
         this.audioElement.innerText = "Unable to start audio until webpage is clicked or interacted with.";
         this.context = this.canvas.getContext("2d");
+        this.context.imageSmoothingEnabled = false;
         document.body.append(this.canvas);
         document.body.append(this.audioElement);
         this.graphicsContext = new Graphics(this.context);
