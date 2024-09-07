@@ -7,7 +7,8 @@ export class Game
     private context : CanvasRenderingContext2D;
     public graphicsContext : Graphics;
     public audio : CattailAudio;
-    public entites : Array<GameObject>;
+    public scenes : Array<Scene>;
+    private currentScene : Scene;
     public fps : number = 1000/60;
     public currentLoop : number;
     public backgroundImage: Sprite;
@@ -31,7 +32,9 @@ export class Game
         document.body.append(this.audioElement);
         this.graphicsContext = new Graphics(this.context);
         this.audio =  new CattailAudio(this.audioElement);
-        this.entites = [];
+        this.scenes = [];
+        this.scenes.push(new Scene());
+        this.currentScene = this.scenes[0];
         window.addEventListener("resize", ()=>{
             this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; 
             if(this.backgroundImage != null || this.backgroundImage != undefined)
@@ -48,27 +51,18 @@ export class Game
     }
     public addEntity(entity: GameObject)
     {
-        this.entites.push(entity);
-        if(entity.active)
-        {
-            entity.load();
-        }
+        this.currentScene.addEntity(entity);
     }
     public run()
     {
         this.getUserGesture();
-        this.entites.forEach((entity) => {
-            if(entity.active)
-            {
-                entity.load();
-            }
-        });
+        this.currentScene.load();
         let lastTime = 0;
         let runFunc = (timestamp) => 
         {
             Game.deltaTime = (timestamp - lastTime) / this.fps;
             lastTime = timestamp;
-            this.entites.forEach((entity) => {entity.update();})
+            this.currentScene.update();
             this.context.clearRect(0,0,this.canvas.width,this.canvas.height);
             this.graphicsContext.draw(this.backgroundImage);
             this.graphicsContext.drawFromList();
@@ -76,6 +70,20 @@ export class Game
         }
         //this.currentLoop = setInterval(runFunc, this.fps/1000);
         window.requestAnimationFrame(runFunc);
+    }
+    public switchScene(scene: Scene)
+    {
+        let found = this.scenes.find((v) => { v == scene });
+        if(found)
+        {
+            this.currentScene = this.scenes[this.scenes.findIndex((v) => { v == scene })];
+        }
+        else
+        {
+            let index = this.scenes.push(scene) - 1;
+            this.currentScene = this.scenes[index];
+        }
+        this.currentScene.load();
     }
     public async getUserGesture() {
         try {
@@ -91,8 +99,45 @@ export class Game
 }
 export class Scene
 {
-    public entities : Array<GameObject>;
-    //this is just so I know it exists.
+    public entities : Array<GameObject> = [];
+    public hasLoaded : boolean = false;
+    public addEntity(entity: GameObject) : void
+    {
+        this.entities.push(entity);
+        if(entity.active)
+        {
+            entity.load();
+        }
+    }
+    public load() : void
+    {
+        if(!this.hasLoaded)
+        {
+            this.entities.forEach((entity) => {
+                entity.shouldRender = true;
+                if(entity.active)
+                {
+                    entity.load();
+                }
+            });
+            this.hasLoaded = true;
+        }
+    }
+    public unload() : void
+    {
+        this.entities.forEach((entity) => {
+            entity.shouldRender = false;
+        });
+    }
+    public update() : void 
+    {
+        this.entities.forEach((entity) => {
+            if(entity.active)
+            {
+                entity.update();
+            }
+        });
+    }
 }
 export class Component
 {
@@ -132,6 +177,7 @@ export class GameObject
     public sprite: DrawData; //this is confusing, do I change it? Not right now.
     public components: Array<Component> = [];
     public active: boolean = true;
+    public shouldRender: boolean = true; //active self needs to exist for reasons, so keep rendering somewhere else.
     public scale: Vector2 = new Vector2(1,1);
     // constructor();
     // constructor(spr: Graphics.Sprite);
@@ -198,9 +244,12 @@ export class GameObject
     
     public prepareDraw()
     {
-        if(this.sprite != null && this.active)
+        if(this.shouldRender)
         {
-            this.sprite.draw.addToDrawList();
+            if(this.sprite != null && this.active)
+            {
+                this.sprite.draw.addToDrawList();
+            }
         }
     }
     public addComponent(component: Component)

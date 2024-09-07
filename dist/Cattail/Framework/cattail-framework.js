@@ -97,6 +97,14 @@ export class Colour {
         return `rgba(${this.colour.x},${this.colour.y},${this.colour.z},${this.alpha})`;
     }
 }
+// const CompositeOperation = Object.freeze({
+//     "default": "source-over",
+//     "src-include": "source-in",
+//     "src-exclude": "source-out",
+//     "src-existing": "source-atop",
+//     "default-dest": "destination-over",
+//     "dest-include": "destination-in"
+// });
 export class DrawList {
     static drawList = [];
 }
@@ -104,6 +112,7 @@ export class Drawable {
     //everything is a drawable, but must implment everything separately.
     position = new Vector2(0, 0);
     zIndex = 0;
+    compositeOperation = "source-over";
     addToDrawList() {
         DrawList.drawList.push(this);
     }
@@ -235,6 +244,7 @@ export class Graphics {
     }
     draw(draw) {
         let currentContext = this.context;
+        currentContext.globalCompositeOperation = draw.compositeOperation;
         if (draw instanceof Shape) {
             let drawable = draw;
             currentContext.beginPath();
@@ -284,6 +294,7 @@ export class Graphics {
         });
         DrawList.drawList.forEach((draw) => {
             let currentContext = this.context;
+            currentContext.globalCompositeOperation = draw.compositeOperation;
             if (draw instanceof Shape) {
                 let drawable = draw;
                 currentContext.beginPath();
@@ -351,7 +362,8 @@ export class Game {
     context;
     graphicsContext;
     audio;
-    entites;
+    scenes;
+    currentScene;
     fps = 1000 / 60;
     currentLoop;
     backgroundImage;
@@ -367,11 +379,14 @@ export class Game {
         this.audioElement.autoplay = true;
         this.audioElement.innerText = "Unable to start audio until webpage is clicked or interacted with.";
         this.context = this.canvas.getContext("2d");
+        this.context.imageSmoothingEnabled = false;
         document.body.append(this.canvas);
         document.body.append(this.audioElement);
         this.graphicsContext = new Graphics(this.context);
         this.audio = new CattailAudio(this.audioElement);
-        this.entites = [];
+        this.scenes = [];
+        this.scenes.push(new Scene());
+        this.currentScene = this.scenes[0];
         window.addEventListener("resize", () => {
             this.canvas.width = window.innerWidth;
             this.canvas.height = window.innerHeight;
@@ -386,23 +401,16 @@ export class Game {
         this.backgroundImage = new Sprite(new Vector2(0, 0), new Vector2(this.canvas.width, this.canvas.height), imageUrl);
     }
     addEntity(entity) {
-        this.entites.push(entity);
-        if (entity.active) {
-            entity.load();
-        }
+        this.currentScene.addEntity(entity);
     }
     run() {
         this.getUserGesture();
-        this.entites.forEach((entity) => {
-            if (entity.active) {
-                entity.load();
-            }
-        });
+        this.currentScene.load();
         let lastTime = 0;
         let runFunc = (timestamp) => {
             Game.deltaTime = (timestamp - lastTime) / this.fps;
             lastTime = timestamp;
-            this.entites.forEach((entity) => { entity.update(); });
+            this.currentScene.update();
             this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
             this.graphicsContext.draw(this.backgroundImage);
             this.graphicsContext.drawFromList();
@@ -410,6 +418,17 @@ export class Game {
         };
         //this.currentLoop = setInterval(runFunc, this.fps/1000);
         window.requestAnimationFrame(runFunc);
+    }
+    switchScene(scene) {
+        let found = this.scenes.find((v) => { v == scene; });
+        if (found) {
+            this.currentScene = this.scenes[this.scenes.findIndex((v) => { v == scene; })];
+        }
+        else {
+            let index = this.scenes.push(scene) - 1;
+            this.currentScene = this.scenes[index];
+        }
+        this.currentScene.load();
     }
     async getUserGesture() {
         try {
@@ -425,7 +444,37 @@ export class Game {
     }
 }
 export class Scene {
-    entities;
+    entities = [];
+    hasLoaded = false;
+    addEntity(entity) {
+        this.entities.push(entity);
+        if (entity.active) {
+            entity.load();
+        }
+    }
+    load() {
+        if (!this.hasLoaded) {
+            this.entities.forEach((entity) => {
+                entity.shouldRender = true;
+                if (entity.active) {
+                    entity.load();
+                }
+            });
+            this.hasLoaded = true;
+        }
+    }
+    unload() {
+        this.entities.forEach((entity) => {
+            entity.shouldRender = false;
+        });
+    }
+    update() {
+        this.entities.forEach((entity) => {
+            if (entity.active) {
+                entity.update();
+            }
+        });
+    }
 }
 export class Component {
     gameObject;
@@ -454,6 +503,7 @@ export class GameObject {
     sprite; //this is confusing, do I change it? Not right now.
     components = [];
     active = true;
+    shouldRender = true; //active self needs to exist for reasons, so keep rendering somewhere else.
     scale = new Vector2(1, 1);
     // constructor();
     // constructor(spr: Graphics.Sprite);
@@ -504,8 +554,10 @@ export class GameObject {
     //     });
     // }
     prepareDraw() {
-        if (this.sprite != null && this.active) {
-            this.sprite.draw.addToDrawList();
+        if (this.shouldRender) {
+            if (this.sprite != null && this.active) {
+                this.sprite.draw.addToDrawList();
+            }
         }
     }
     addComponent(component) {
